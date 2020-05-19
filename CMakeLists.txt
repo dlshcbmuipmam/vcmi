@@ -132,7 +132,8 @@ if(WIN32)
 	if(MSVC)
 		add_definitions(-DBOOST_ALL_NO_LIB)
 		add_definitions(-DBOOST_ALL_DYN_LINK)
-		set(Boost_USE_STATIC_LIBS OFF)
+		add_definitions(-DBOOST_USE_WINDOWS_H)
+		add_definitions(-DNOGDI)
 
 		# Don't link with SDLMain
 		if(ENABLE_DEBUG_CONSOLE)
