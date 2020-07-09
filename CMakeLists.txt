@@ -117,6 +117,11 @@ include(UseDoxygen OPTIONAL)
 #        Compile and linking options       #
 ############################################
 
+# Use c++ 17
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 if(APPLE)
 	set(CMAKE_MACOSX_RPATH 0)
 endif(APPLE)
@@ -124,7 +129,8 @@ endif(APPLE)
 if(WIN32)
 	add_definitions(-DBOOST_THREAD_USE_LIB)
 	# Windows Vista or newer for FuzzyLite 6 to compile
-	add_definitions(-D_WIN32_WINNT=0x0600)
+	# 0x0A00 is Windows 10
+	add_definitions(-D_WIN32_WINNT=0x0A00)
 
 	#delete lib prefix for dlls (libvcmi -> vcmi)
 	set(CMAKE_SHARED_LIBRARY_PREFIX "")
@@ -178,8 +184,8 @@ if(WIN32)
 	endif(MINGW)
 endif(WIN32)
 
-if(CMAKE_COMPILER_IS_GNUCXX OR NOT WIN32) #so far all *nix compilers support such parameters
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -Wall -Wextra -Wpointer-arith -Wuninitialized")
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR NOT WIN32) #so far all *nix compilers support such parameters
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpointer-arith -Wuninitialized")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-strict-aliasing -Wno-switch -Wno-sign-compare -Wno-unused-local-typedefs")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter -Wno-overloaded-virtual -Wno-type-limits -Wno-unknown-pragmas")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-reorder")
