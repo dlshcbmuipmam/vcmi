@@ -689,9 +689,9 @@ CTavernWindow::CTavernWindow(const CGObjectInstance * TavernObj)
 			recruit->block(true);
 	}
 	if(LOCPLINT->castleInt)
-		CCS->videoh->open(LOCPLINT->castleInt->town->town->clientInfo.tavernVideo);
+		CCS->videoh.reset(new CVideoPlayer(LOCPLINT->castleInt->town->town->clientInfo.tavernVideo));
 	else
-		CCS->videoh->open("TAVERN.BIK");
+		CCS->videoh.reset(new CVideoPlayer("TAVERN.BIK"));
 }
 
 void CTavernWindow::recruitb()
@@ -709,14 +709,23 @@ void CTavernWindow::thievesguildb()
 
 CTavernWindow::~CTavernWindow()
 {
-	CCS->videoh->close();
+	CCS->videoh.reset(new CVideoPlayer());
 }
 
 void CTavernWindow::show(SDL_Surface * to)
 {
 	CWindowObject::show(to);
 
-	CCS->videoh->update(pos.x+70, pos.y+56, to, true, false);
+	if(CCS->videoh->nextFrame(true))
+		CCS->videoh->update(pos.x+70, pos.y+56, to, true, false);
+	else
+	{
+		auto fname = CCS->videoh->fname;
+		CCS->videoh.reset(new CVideoPlayer(fname));
+		CCS->videoh->nextFrame(false);
+		CCS->videoh->update(pos.x+70, pos.y+56, to, true, false);
+	}
+
 	if(selected >= 0)
 	{
 		auto sel = selected ? h2 : h1;

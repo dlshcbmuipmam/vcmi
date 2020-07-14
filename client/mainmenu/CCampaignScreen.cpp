@@ -122,14 +122,20 @@ void CCampaignScreen::CCampaignButton::show(SDL_Surface * to)
 	// Play the campaign button video when the mouse cursor is placed over the button
 	if(hovered)
 	{
-		if(CCS->videoh->fname != video)
-			CCS->videoh->open(video);
+		bool hasNextFrame = CCS->videoh->nextFrame(true);
+		if(CCS->videoh->fname != video || !hasNextFrame)
+		{
+			CCS->videoh.reset(new CVideoPlayer(video));
 
-		CCS->videoh->update(pos.x, pos.y, to, true, false); // plays sequentially frame by frame, starts at the beginning when the video is over
+		}
+		else
+		{
+			CCS->videoh->update(pos.x, pos.y, to, true, false);
+		}
 	}
 	else if(CCS->videoh->fname == video) // When you got out of the bounds of the button then close the video
 	{
-		CCS->videoh->close();
+		CCS->videoh.reset(new CVideoPlayer());
 		redraw();
 	}
 }
@@ -138,7 +144,7 @@ void CCampaignScreen::CCampaignButton::clickLeft(tribool down, bool previousStat
 {
 	if(down)
 	{
-		CCS->videoh->close();
+		CCS->videoh.reset(new CVideoPlayer());
 		CMainMenu::openCampaignLobby(campFile);
 	}
 }

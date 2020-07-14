@@ -9,8 +9,10 @@
  */
 #pragma once
 
-struct SDL_Surface;
+#include <string>
+#include <memory>
 
+struct SDL_Surface;
 
 class IVideoPlayer
 {
@@ -18,8 +20,8 @@ public:
 	virtual bool open(std::string name, bool scale = false)=0; //true - succes
 	virtual void close()=0;
 	virtual bool nextFrame()=0;
+	virtual bool nextFrame(bool wait)=0;
 	virtual void show(int x, int y, SDL_Surface *dst, bool update = true)=0;
-	virtual void redraw(int x, int y, SDL_Surface *dst, bool update = true)=0; //reblits buffer
 	virtual bool wait()=0;
 	virtual int curFrame() const =0;
 	virtual int frameCount() const =0;
@@ -30,8 +32,14 @@ class IMainVideoPlayer : public IVideoPlayer
 public:
 	std::string fname;  //name of current video file (empty if idle)
 
-	virtual void update(int x, int y, SDL_Surface *dst, bool forceRedraw, bool update = true){}
+	virtual ~IMainVideoPlayer() = default;
+
+	virtual void update(int x, int y, SDL_Surface *dst, bool forceRedraw, bool update = true){;}
 	virtual bool openAndPlayVideo(std::string name, int x, int y, bool stopOnKey = false, bool scale = false)
+	{
+		return false;
+	}
+	virtual bool getOpenAndPlayVideoDone()
 	{
 		return false;
 	}
@@ -42,9 +50,9 @@ class CEmptyVideoPlayer : public IMainVideoPlayer
 public:
 	int curFrame() const override {return -1;};
 	int frameCount() const override {return -1;};
-	void redraw( int x, int y, SDL_Surface *dst, bool update = true ) override {};
 	void show( int x, int y, SDL_Surface *dst, bool update = true ) override {};
 	bool nextFrame() override {return false;};
+	bool nextFrame(bool wait) override {return false;};
 	void close() override {};
 	bool wait() override {return false;};
 	bool open(std::string name, bool scale = false) override {return false;};
@@ -110,25 +118,29 @@ class CVideoPlayer : public IMainVideoPlayer
 	int refreshWait; // Wait several refresh before updating the image
 	int refreshCount;
 	bool doLoop;				// loop through video
+	bool openAndPlayVideoDone;
 
 	bool playVideo(int x, int y, bool stopOnKey);
 	bool open(std::string fname, bool loop, bool useOverlay = false, bool scale = false);
 
 public:
 	CVideoPlayer();
+	CVideoPlayer(std::string fname); // call open()
+	CVideoPlayer(std::string name, int x, int y, bool stopOnKey = false, bool scale = false); //call openAndPlayVideo()
 	~CVideoPlayer();
 
 	bool init();
 	bool open(std::string fname, bool scale = false) override;
 	void close() override;
 	bool nextFrame() override;			// display next frame
+	bool nextFrame(bool wait) override; // Wait for certain frame and display next frame
 
 	void show(int x, int y, SDL_Surface *dst, bool update = true) override; //blit current frame
-	void redraw(int x, int y, SDL_Surface *dst, bool update = true) override; //reblits buffer
-	void update(int x, int y, SDL_Surface *dst, bool forceRedraw, bool update = true) override; //moves to next frame if appropriate, and blits it or blits only if redraw parameter is set true
+	void update(int x, int y, SDL_Surface *dst, bool forceRedraw, bool update = true) override; //call show()
 
 	// Opens video, calls playVideo, closes video; returns playVideo result (if whole video has been played)
 	bool openAndPlayVideo(std::string name, int x, int y, bool stopOnKey = false, bool scale = false) override;
+	bool getOpenAndPlayVideoDone();
 
 	//TODO:
 	bool wait() override {return false;};

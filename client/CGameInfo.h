@@ -9,6 +9,7 @@
  */
 #pragma once
 
+#include <memory>
 #include "../lib/ConstTransitivePtr.h"
 
 class CModHandler;
@@ -42,7 +43,7 @@ public:
 	CMusicHandler * musich;
 	CConsoleHandler * consoleh;
 	CCursorHandler * curh;
-	IMainVideoPlayer * videoh;
+	std::unique_ptr<IMainVideoPlayer> videoh;
 };
 extern CClientState * CCS;
 

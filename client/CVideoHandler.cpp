@@ -72,11 +72,22 @@ CVideoPlayer::CVideoPlayer()
 	refreshWait = 0;
 	refreshCount = 0;
 	doLoop = false;
+	openAndPlayVideoDone = false;
 
 	// Register codecs. TODO: May be overkill. Should call a
 	// combination of av_register_input_format() /
 	// av_register_output_format() / av_register_protocol() instead.
 	av_register_all();
+}
+
+CVideoPlayer::CVideoPlayer(std::string fname) : CVideoPlayer()
+{
+	open(fname);
+}
+
+CVideoPlayer::CVideoPlayer(std::string fname, int x, int y, bool stopOnKey, bool scale) : CVideoPlayer()
+{
+	openAndPlayVideo(fname, x, y, stopOnKey, scale);
 }
 
 bool CVideoPlayer::open(std::string fname, bool scale)
@@ -88,10 +99,8 @@ bool CVideoPlayer::open(std::string fname, bool scale)
 // useOverlay = directly write to the screen.
 bool CVideoPlayer::open(std::string fname, bool loop, bool useOverlay, bool scale)
 {
-	close();
-
 	this->fname = fname;
-	refreshWait = 3;
+	refreshWait = 2;
 	refreshCount = -1;
 	doLoop = loop;
 
@@ -272,9 +281,9 @@ bool CVideoPlayer::nextFrame()
 				// Did we get a video frame?
 				if (frameFinished)
 				{
-					AVPicture pict;
-
 					if (texture) {
+						AVPicture pict;
+
 						avpicture_alloc(&pict, AV_PIX_FMT_YUV420P, pos.w, pos.h);
 
 						sws_scale(sws, frame->data, frame->linesize,
@@ -283,15 +292,29 @@ bool CVideoPlayer::nextFrame()
 						SDL_UpdateYUVTexture(texture, NULL, pict.data[0], pict.linesize[0],
 								pict.data[1], pict.linesize[1],
 								pict.data[2], pict.linesize[2]);
+
 						avpicture_free(&pict);
 					}
 					else
 					{
-						pict.data[0] = (ui8 *)dest->pixels;
-						pict.linesize[0] = dest->pitch;
+						SDL_LockSurface(dest);
+
+						ui8 surface2[(dest->h) * (dest->pitch)];
+						ui8 *data[4];
+						data[0] = surface2;
+
+						int linesize[4];
+						linesize[0] = dest->pitch;
 
 						sws_scale(sws, frame->data, frame->linesize,
-								  0, codecContext->height, pict.data, pict.linesize);
+								  0, codecContext->height, data, linesize);
+
+						// Draw dest surface
+						for(int i = 0; i < dest->pitch; i++)
+							for(int j = 0; j < dest->h; j++)
+								*((ui8 *)dest->pixels + j * dest->pitch + i) = surface2[j * dest->pitch + i];
+
+						SDL_UnlockSurface(dest);
 					}
 				}
 			}
@@ -301,6 +324,23 @@ bool CVideoPlayer::nextFrame()
 	}
 
 	return frameFinished != 0;
+}
+
+// wait: if true, update per refreshWait turn
+bool CVideoPlayer::nextFrame(bool wait)
+{
+	if (!wait)
+		return nextFrame();
+	else if(refreshCount <= 0)
+	{
+		refreshCount = refreshWait;
+		return nextFrame();
+	}
+	else
+	{
+		--refreshCount;
+		return true;
+	}
 }
 
 void CVideoPlayer::show( int x, int y, SDL_Surface *dst, bool update )
@@ -316,38 +356,9 @@ void CVideoPlayer::show( int x, int y, SDL_Surface *dst, bool update )
 		SDL_UpdateRect(dst, pos.x, pos.y, pos.w, pos.h);
 }
 
-void CVideoPlayer::redraw( int x, int y, SDL_Surface *dst, bool update )
-{
-	show(x, y, dst, update);
-}
-
 void CVideoPlayer::update( int x, int y, SDL_Surface *dst, bool forceRedraw, bool update )
 {
-	if (sws == nullptr)
-		return;
-
-	if (refreshCount <= 0)
-	{
-		refreshCount = refreshWait;
-		if (nextFrame())
-			show(x,y,dst,update);
-		else
-		{
-			open(fname);
-			nextFrame();
-
-			// The y position is wrong at the first frame.
-			// Note: either the windows player or the linux player is
-			// broken. Compensate here until the bug is found.
-			show(x, y--, dst, update);
-		}
-	}
-	else
-	{
-		redraw(x, y, dst, update);
-	}
-
-	refreshCount --;
+	show(x, y, dst, update);
 }
 
 void CVideoPlayer::close()
@@ -398,10 +409,6 @@ void CVideoPlayer::close()
 // Plays a video. Only works for overlays.
 bool CVideoPlayer::playVideo(int x, int y, bool stopOnKey)
 {
-	// Note: either the windows player or the linux player is
-	// broken. Compensate here until the bug is found.
-	y--;
-
 	pos.x = x;
 	pos.y = y;
 
@@ -425,9 +432,14 @@ bool CVideoPlayer::playVideo(int x, int y, bool stopOnKey)
 bool CVideoPlayer::openAndPlayVideo(std::string name, int x, int y, bool stopOnKey, bool scale)
 {
 	open(name, false, true, scale);
-	bool ret = playVideo(x, y,  stopOnKey);
+	openAndPlayVideoDone = playVideo(x, y,  stopOnKey);
 	close();
-	return ret;
+	return openAndPlayVideoDone;
+}
+
+bool CVideoPlayer::getOpenAndPlayVideoDone()
+{
+	return openAndPlayVideoDone;
 }
 
 CVideoPlayer::~CVideoPlayer()

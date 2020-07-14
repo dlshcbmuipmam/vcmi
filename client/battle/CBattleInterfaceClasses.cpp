@@ -500,7 +500,7 @@ CBattleResultWindow::CBattleResultWindow(const BattleResult & br, CPlayerInterfa
 		}
 
 		CCS->musich->playMusic("Music/Win Battle", false);
-		CCS->videoh->open("WIN3.BIK");
+		CCS->videoh.reset(new CVideoPlayer("WIN3.BIK"));
 		std::string str = CGI->generaltexth->allTexts[text];
 
 		const CGHeroInstance * ourHero = owner.cb->battleGetMyHero();
@@ -537,7 +537,7 @@ CBattleResultWindow::CBattleResultWindow(const BattleResult & br, CPlayerInterfa
 			break;
 		}
 		CCS->musich->playMusic(musicName, false);
-		CCS->videoh->open(videoName);
+		CCS->videoh.reset(new CVideoPlayer(videoName));
 
 		labels.push_back(std::make_shared<CLabel>(235, 235, FONT_SMALL, CENTER, Colors::WHITE, CGI->generaltexth->allTexts[text]));
 	}
@@ -554,7 +554,15 @@ void CBattleResultWindow::activate()
 void CBattleResultWindow::show(SDL_Surface * to)
 {
 	CIntObject::show(to);
-	CCS->videoh->update(pos.x + 107, pos.y + 70, screen, true, false);
+	if(CCS->videoh->nextFrame(true))
+		CCS->videoh->update(pos.x + 107, pos.y + 70, screen, true, false);
+	else
+	{
+		auto fname = CCS->videoh->fname;
+		CCS->videoh.reset(new CVideoPlayer(fname));
+		CCS->videoh->nextFrame(false);
+		CCS->videoh->update(pos.x + 107, pos.y + 70, screen, true, false);
+	}
 }
 
 void CBattleResultWindow::bExitf()
@@ -569,7 +577,8 @@ void CBattleResultWindow::bExitf()
 	//Result window and battle interface are gone. We requested all dialogs to be closed before opening the battle,
 	//so we can be sure that there is no dialogs left on GUI stack.
 	intTmp.showingDialog->setn(false);
-	CCS->videoh->close();
+	CCS->videoh.reset(new CVideoPlayer());
+
 }
 
 Point CClickableHex::getXYUnitAnim(BattleHex hexNum, const CStack * stack, CBattleInterface * cbi)

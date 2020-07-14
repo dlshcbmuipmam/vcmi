@@ -412,9 +412,9 @@ int main(int argc, char * argv[])
 	CCS->videoh = new CEmptyVideoPlayer();
 #else
 	if (!settings["session"]["headless"].Bool() && !vm.count("disable-video"))
-		CCS->videoh = new CVideoPlayer();
+		CCS->videoh.reset(new CVideoPlayer());
 	else
-		CCS->videoh = new CEmptyVideoPlayer();
+		CCS->videoh.reset(new CEmptyVideoPlayer());
 #endif
 
 	logGlobal->info("\tInitializing video: %d ms", pomtime.getDiff());
@@ -976,9 +976,10 @@ void processCommand(const std::string &message)
 //plays intro, ends when intro is over or button has been pressed (handles events)
 void playIntro()
 {
-	if(CCS->videoh->openAndPlayVideo("3DOLOGO.SMK", 0, 1, true, true))
+	CCS->videoh.reset(new CVideoPlayer("3DOLOGO.SMK", 0, 1, true, true));
+	if(CCS->videoh->getOpenAndPlayVideoDone())
 	{
-		CCS->videoh->openAndPlayVideo("AZVS.SMK", 0, 1, true, true);
+		CCS->videoh.reset(new CVideoPlayer("AZVS.SMK", 0, 1, true, true));
 	}
 }
 

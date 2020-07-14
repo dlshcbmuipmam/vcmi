@@ -109,7 +109,17 @@ std::shared_ptr<CIntObject> CMenuScreen::createTab(size_t index)
 void CMenuScreen::show(SDL_Surface * to)
 {
 	if(!config["video"].isNull())
-		CCS->videoh->update(config["video"]["x"].Float() + pos.x, config["video"]["y"].Float() + pos.y, to, true, false);
+	{
+		if(CCS->videoh->nextFrame(true))
+			CCS->videoh->update(config["video"]["x"].Float() + pos.x, config["video"]["y"].Float() + pos.y, to, true, false);
+		else
+		{
+			auto fname = CCS->videoh->fname;
+			CCS->videoh.reset(new CVideoPlayer(fname));
+			CCS->videoh->nextFrame(false);
+			CCS->videoh->update(config["video"]["x"].Float() + pos.x, config["video"]["y"].Float() + pos.y, to, true, false);
+		}
+	}
 	CIntObject::show(to);
 }
 
@@ -117,14 +127,14 @@ void CMenuScreen::activate()
 {
 	CCS->musich->playMusic("Music/MainMenu", true);
 	if(!config["video"].isNull())
-		CCS->videoh->open(config["video"]["name"].String());
+		CCS->videoh.reset(new CVideoPlayer(config["video"]["name"].String()));
 	CIntObject::activate();
 }
 
 void CMenuScreen::deactivate()
 {
 	if(!config["video"].isNull())
-		CCS->videoh->close();
+		CCS->videoh.reset(new CVideoPlayer());
 
 	CIntObject::deactivate();
 }

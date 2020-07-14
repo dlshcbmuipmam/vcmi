@@ -28,7 +28,7 @@ CPrologEpilogVideo::CPrologEpilogVideo(CCampaignScenario::SScenarioPrologEpilog 
 	pos = center(Rect(0, 0, 800, 600));
 	updateShadow();
 
-	CCS->videoh->open(CCampaignHandler::prologVideoName(spe.prologVideo));
+	CCS->videoh.reset(new CVideoPlayer(CCampaignHandler::prologVideoName(spe.prologVideo)));
 	CCS->musich->playMusic("Music/" + CCampaignHandler::prologMusicName(spe.prologMusic), true);
 	// MPTODO: Custom campaign crashing on this?
 //	voiceSoundHandle = CCS->soundh->playSound(CCampaignHandler::prologVoiceName(spe.prologVideo));
@@ -43,7 +43,15 @@ void CPrologEpilogVideo::show(SDL_Surface * to)
 	//BUG: some videos are 800x600 in size while some are 800x400
 	//VCMI should center them in the middle of the screen. Possible but needs modification
 	//of video player API which I'd like to avoid until we'll get rid of Windows-specific player
-	CCS->videoh->update(pos.x, pos.y, to, true, false);
+	if(CCS->videoh->nextFrame(true))
+		CCS->videoh->update(pos.x, pos.y, to, true, false);
+	else
+	{
+		auto fname = CCS->videoh->fname;
+		CCS->videoh.reset(new CVideoPlayer(fname));
+		CCS->videoh->nextFrame(false);
+		CCS->videoh->update(pos.x, pos.y, to, true, false);
+	}
 
 	//move text every 5 calls/frames; seems to be good enough
 	++positionCounter;

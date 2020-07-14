@@ -18,7 +18,6 @@ const CGameInfo * CGI;
 CClientState * CCS = nullptr;
 CServerHandler * CSH;
 
-
 CGameInfo::CGameInfo()
 {
 	generaltexth = nullptr;
